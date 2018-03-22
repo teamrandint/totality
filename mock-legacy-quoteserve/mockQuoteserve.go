@@ -10,21 +10,21 @@ import (
 )
 
 const (
-	ConnHost = "172.20.0.1" // Run on the local machine
-	ConnPort = "4444"       // Same port as on the regular system
-	ConnType = "tcp"        // NOTE: not HTPP
+	connHost = "172.20.0.1" // Run on the local machine
+	connPort = "4444"       // Same port as on the regular system
+	connType = "tcp"        // NOTE: not HTPP
 )
 
 func main() {
 	// Listen for incoming connections.
-	l, err := net.Listen(ConnType, ConnHost+":"+ConnPort)
+	l, err := net.Listen(connType, connHost+":"+connPort)
 	if err != nil {
 		fmt.Println("Error listening:", err.Error())
 		os.Exit(1)
 	}
 	// Close the listener when the application closes.
 	defer l.Close()
-	fmt.Println("Listening on " + ConnHost + ":" + ConnPort)
+	fmt.Println("Listening on " + connHost + ":" + connPort)
 	for {
 		// Listen for an incoming connection.
 		conn, err := l.Accept()

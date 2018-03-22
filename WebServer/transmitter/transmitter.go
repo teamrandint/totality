@@ -3,8 +3,8 @@ package transmitter
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -53,7 +53,7 @@ func (trans *Transmitter) MakeRequest(transNum int, message string) string {
 		log.Print(err)
 		return "-1"
 	}
-		
+
 	trans.connection = conn
 
 	// fmt.Println("Making request to transaction server")
@@ -66,7 +66,7 @@ func (trans *Transmitter) MakeRequest(transNum int, message string) string {
 
 func (trans *Transmitter) RetrieveDumplog(filename string) []byte {
 	auditAddr := "http://" + os.Getenv("auditaddr") + ":" + os.Getenv("auditport")
-	resp, err := http.PostForm(auditAddr + "/dumpLogRetrieve", url.Values{"filename": {filename}})
+	resp, err := http.PostForm(auditAddr+"/dumpLogRetrieve", url.Values{"filename": {filename}})
 	if err != nil {
 		log.Print(err)
 	}

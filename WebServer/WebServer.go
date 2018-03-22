@@ -106,7 +106,7 @@ func (webServer *WebServer) buyHandler(writer http.ResponseWriter, request *http
 
 	// Append buy to pendingBuys list
 	userSession.PendingBuys = append(userSession.PendingBuys, command)
- }
+}
 
 func (webServer *WebServer) commitBuyHandler(writer http.ResponseWriter, request *http.Request, title string) {
 	currTransNum := int(atomic.AddInt64(&webServer.transactionNumber, 1))
@@ -128,7 +128,7 @@ func (webServer *WebServer) commitBuyHandler(writer http.ResponseWriter, request
 		//fmt.Printf("No buys to commit for user %s\n", username)
 		webServer.logger.SystemError(webServer.Name, currTransNum, "COMMIT_BUY",
 			username, nil, nil, nil, "No pending buys to commit")
-		http.Error(writer, "Invalid request", 400)
+		http.Error(writer, "No pending buys to commit", 400)
 		return
 	}
 
@@ -139,7 +139,8 @@ func (webServer *WebServer) commitBuyHandler(writer http.ResponseWriter, request
 		resp = webServer.transmitter.MakeRequest(currTransNum, "CANCEL_BUY,"+username)
 		webServer.logger.SystemError(webServer.Name, currTransNum, "COMMIT_BUY",
 			username, nil, nil, nil, "Time elapsed on most recent buy request")
-		http.Error(writer, "Invalid request", 400)
+		http.Error(writer, "Time elapsed on most recent buy request", 400)
+		return
 		//fmt.Printf("Time has elapsed on last buy for user %s\n", username)
 	} else {
 		resp = webServer.transmitter.MakeRequest(currTransNum, "COMMIT_BUY,"+username)
@@ -148,7 +149,7 @@ func (webServer *WebServer) commitBuyHandler(writer http.ResponseWriter, request
 	if resp == "-1" {
 		webServer.logger.SystemError(webServer.Name, currTransNum, "COMMIT_BUY",
 			username, nil, nil, nil, "Bad response from transactionserv")
-		http.Error(writer, "Invalid Request", 400)
+		http.Error(writer, "Bad response from transactionserv", 400)
 		return
 	}
 	// Pop last sell off the pending list.
@@ -165,7 +166,7 @@ func (webServer *WebServer) cancelBuyHandler(writer http.ResponseWriter, request
 	val, ok := webServer.userSessions.Load(username)
 	// User must be logged in to execute any commands.
 	if !ok {
-		http.Error(writer, "Invalid request", 400)
+		http.Error(writer, "must be logged in", 400)
 		return
 	}
 	userSession := val.(*usersessions.UserSession)
@@ -173,7 +174,7 @@ func (webServer *WebServer) cancelBuyHandler(writer http.ResponseWriter, request
 	if !userSession.HasPendingBuys() {
 		webServer.logger.SystemError(webServer.Name, currTransNum, "CANCEL_BUY",
 			username, nil, nil, nil, "No pending buys to cancel")
-		http.Error(writer, "Invalid request", 400)
+		http.Error(writer, "No pending buys to cancel", 400)
 		//fmt.Printf("No buys to cancel for user %s\n", username)
 		return
 	}
@@ -183,7 +184,7 @@ func (webServer *WebServer) cancelBuyHandler(writer http.ResponseWriter, request
 	if resp == "-1" {
 		webServer.logger.SystemError(webServer.Name, currTransNum, "CANCEL_BUY",
 			username, nil, nil, nil, "Bad response from transactionserv")
-		http.Error(writer, "Invalid Request", 400)
+		http.Error(writer, "Bad response from transactionserv", 400)
 		return
 	}
 	// Pop last sell off the pending list.
@@ -203,7 +204,7 @@ func (webServer *WebServer) sellHandler(writer http.ResponseWriter, request *htt
 	val, ok := webServer.userSessions.Load(username)
 	// User must be logged in to execute any commands.
 	if !ok {
-		http.Error(writer, "Invalid request", 400)
+		http.Error(writer, "must be logged in to execute any commands", 400)
 		return
 	}
 	userSession := val.(*usersessions.UserSession)
@@ -212,7 +213,7 @@ func (webServer *WebServer) sellHandler(writer http.ResponseWriter, request *htt
 	if resp == "-1" {
 		webServer.logger.SystemError(webServer.Name, currTransNum, "SELL",
 			username, stock, nil, amount, "Bad response from transactionserv")
-		http.Error(writer, "Invalid Request", 400)
+		http.Error(writer, "Bad response from transactionserv", 400)
 		return
 	}
 
@@ -229,7 +230,7 @@ func (webServer *WebServer) commitSellHandler(writer http.ResponseWriter, reques
 	val, ok := webServer.userSessions.Load(username)
 	// User must be logged in to execute any commands.
 	if !ok {
-		http.Error(writer, "Invalid request", 400)
+		http.Error(writer, "must be logged in to execute any commands", 400)
 		return
 	}
 	userSession := val.(*usersessions.UserSession)
@@ -238,7 +239,7 @@ func (webServer *WebServer) commitSellHandler(writer http.ResponseWriter, reques
 		// No pendings buys, return error
 		webServer.logger.SystemError(webServer.Name, currTransNum, "COMMIT_SELL",
 			username, nil, nil, nil, "No pending sells to commit")
-		http.NotFound(writer, request)
+		http.Error(writer, "No pending sells to commit", 400)
 		//fmt.Printf("No sells to commit for user %s\n", username)
 		return
 	}
@@ -251,7 +252,8 @@ func (webServer *WebServer) commitSellHandler(writer http.ResponseWriter, reques
 		resp = webServer.transmitter.MakeRequest(currTransNum, "CANCEL_SELL,"+username)
 		webServer.logger.SystemError(webServer.Name, currTransNum, "COMMIT_SELL",
 			username, nil, nil, nil, "Time elapsed on most recent sell")
-		http.NotFound(writer, request)
+		http.Error(writer, "Time elapsed on most recent sell", 400)
+		return
 		//fmt.Printf("Time has elapsed on last sell for user %s\n", username)
 	} else {
 		resp = webServer.transmitter.MakeRequest(currTransNum, "COMMIT_SELL,"+username)
@@ -260,7 +262,7 @@ func (webServer *WebServer) commitSellHandler(writer http.ResponseWriter, reques
 	if resp == "-1" {
 		webServer.logger.SystemError(webServer.Name, currTransNum, "COMMIT_SELL",
 			username, nil, nil, nil, "Bad response from transactionserv")
-		http.Error(writer, "Invalid Request", 400)
+		http.Error(writer, "Bad response from transactionserv", 400)
 		return
 	}
 	// Pop last sell off the pending list.
@@ -276,7 +278,7 @@ func (webServer *WebServer) cancelSellHandler(writer http.ResponseWriter, reques
 	val, ok := webServer.userSessions.Load(username)
 	// User must be logged in to execute any commands.
 	if !ok {
-		http.Error(writer, "Invalid request", 400)
+		http.Error(writer, " must be logged in to execute any command", 400)
 		return
 	}
 	userSession := val.(*usersessions.UserSession)

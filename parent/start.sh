@@ -33,3 +33,9 @@ docker run -d -p 44458:44458 \
 --net net \
 --ip 172.20.0.6 \
 teamrandint/transactionserver
+
+docker run -d -p 44460:44460 \
+--name trigger \
+--net net \
+--ip 172.20.0.8 \
+teamrandint/triggerserver

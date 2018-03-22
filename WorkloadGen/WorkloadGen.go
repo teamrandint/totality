@@ -3,10 +3,11 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
-	"io/ioutil"
 	"regexp"
 	"strconv"
 	"strings"
@@ -45,8 +46,15 @@ func runRequests(serverAddr string, users map[string][]string, delay int) {
 
 		wg.Add(1)
 		go func(commands []string) {
+			transport := http.Transport{
+				Dial: dialTimeout,
+			}
+			client := http.Client{
+				Transport: &transport,
+			}
+
 			// Issue login before executing any commands
-			resp, err := http.PostForm("http://"+serverAddr+"/"+"LOGIN"+"/", url.Values{"username": {userName}})
+			resp, err := client.PostForm("http://"+serverAddr+"/"+"LOGIN"+"/", url.Values{"username": {userName}})
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -56,7 +64,7 @@ func runRequests(serverAddr string, users map[string][]string, delay int) {
 				endpoint, values := parseCommand(command)
 				time.Sleep(time.Duration(delay) * time.Millisecond) // ADJUST THIS TO CHANGE DELAY
 				// fmt.Println("http://"+serverAddr+"/"+endpoint+"/", values)
-				resp, err := http.PostForm("http://"+serverAddr+"/"+endpoint+"/", values)
+				resp, err := client.PostForm("http://"+serverAddr+"/"+endpoint+"/", values)
 				if err != nil {
 					fmt.Println(err)
 				}
@@ -152,13 +160,21 @@ func parseCommand(cmd string) (endpoint string, v url.Values) {
 func countTPS() {
 	var tpsStart uint64
 	var tpsEnd uint64
-	elapsedtime := 0
-	for {
-		tpsStart = transcount
-		time.Sleep(time.Second)
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	tpsStart = 0
+	tpsEnd = 0
+	for t := range ticker.C {
+		tpsStart = tpsEnd
 		tpsEnd = transcount
 
-		fmt.Printf("%d Running at %d TPS\n", elapsedtime, tpsEnd-tpsStart)
-		elapsedtime++
+		h, m, s := t.Clock()
+		fmt.Printf("%d:%d:%d\t%d TPS\t\t%d total\n", h, m, s, tpsEnd-tpsStart, tpsEnd)
 	}
+}
+
+func dialTimeout(network, addr string) (net.Conn, error) {
+	var timeout = time.Duration(15 * time.Second)
+	return net.DialTimeout(network, addr, timeout)
 }

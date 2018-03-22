@@ -33,7 +33,7 @@ func TestGetUserInfo(t *testing.T) {
 	if error != nil {
 		t.Error(error)
 	} else {
-		fmt.Println("%v", r)
+		fmt.Println(r)
 	}
 	db.DeleteKey("AAA:Balance")
 }
@@ -73,25 +73,28 @@ func TestGetFunds(t *testing.T) {
 
 func TestStocks(t *testing.T) {
 	db := RedisDatabase{"tcp", ":6379"}
-	db.AddStock("F", "stockname", 22)
+	db.AddStock("F", "stockname", decimal.NewFromFloat(22.00))
 
-	amt, _ := db.GetStock("F", "stockname")
-	if amt != 22 {
+	amt, err := db.GetStock("F", "stockname")
+	if !amt.Equals(decimal.NewFromFloat(22.00)) {
 		t.Error("Wrong value for stocks, should be 22, is ", amt)
 	}
+	if err != nil {
+		t.Error(err)
+	}
 
-	amt, _ = db.GetStock("F", "wrongstockname")
-	if amt != 0 {
+	amt, err = db.GetStock("F", "wrongstockname")
+	if !amt.Equals(decimal.NewFromFloat(0.0)) {
 		t.Error("Should get no value for stocks")
 	}
 
-	err := db.RemoveStock("F", "stockname", 2)
+	err = db.RemoveStock("F", "stockname", decimal.NewFromFloat(2.0))
 	if err != nil {
 		t.Error(err)
 	}
 
 	amt, err = db.GetStock("F", "stockname")
-	if amt != 20 {
+	if !amt.Equals(decimal.NewFromFloat(20.0)) {
 		t.Error("Failed to remove stock")
 	} else if err != nil {
 		t.Error(err)
@@ -102,11 +105,11 @@ func TestStocks(t *testing.T) {
 
 func TestOrders(t *testing.T) {
 	db := RedisDatabase{"tcp", ":6379"}
-	err := db.PushSell("SELLER", "AAA", decimal.NewFromFloat(11.11), 3)
+	err := db.PushSell("SELLER", "AAA", decimal.NewFromFloat(11.11), decimal.NewFromFloat(3))
 	if err != nil {
 		t.Error(err)
 	}
-	err = db.PushSell("SELLER", "BBB", decimal.NewFromFloat(11.11), 3)
+	err = db.PushSell("SELLER", "BBB", decimal.NewFromFloat(11.11), decimal.NewFromFloat(3))
 	if err != nil {
 		t.Error(err)
 	}

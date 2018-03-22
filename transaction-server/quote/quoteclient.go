@@ -1,21 +1,19 @@
 package quoteclient
 
 import (
-	"github.com/shopspring/decimal"
-	"os"
-	"net/http"
-	"log"
 	"fmt"
-	"strconv"
 	"io/ioutil"
-)
+	"log"
+	"net/http"
+	"os"
+	"strconv"
 
-var addr = os.Getenv("quoteclientaddr")
-var port = os.Getenv("quoteclientport")
+	"github.com/shopspring/decimal"
+)
 
 func Query(user string, stock string, transNum int) (decimal.Decimal, error) {
 	http.DefaultTransport.(*http.Transport).MaxIdleConnsPerHost = 100
-	req, err := http.NewRequest("GET","http://" + addr + ":" + port + "/quote", nil)
+	req, err := http.NewRequest("GET", "http://"+os.Getenv("quoteaddr")+":"+os.Getenv("quoteport")+"/quote", nil)
 	if err != nil {
 		log.Print(err)
 		panic(err)
