@@ -1,0 +1,89 @@
+version: '3'
+networks:
+      overlay-network:
+        external: true
+services:
+    web:
+        image: teamrandint/webserver
+        deploy:
+            replicas: ${num_web}
+        depends_on:
+            - "transaction"
+            - "database"
+            - "audit"
+        env_file:
+            - .env
+        ports:
+            - "${webport}:${webport}"
+        networks:
+          - overlay-network
+    audit:
+        image: teamrandint/auditserver
+        env_file:
+            - .env
+        ports:
+            - "${auditport}:${auditport}"
+        networks:
+          - overlay-network
+    database:
+        image: teamrandint/database
+        env_file:
+            - .env
+        ports:
+            - ${dbport}:${dbport}
+        networks:
+          - overlay-network
+    transaction:
+        image: teamrandint/transactionserver
+        depends_on:
+            - "database"
+            - "audit"
+            - "quote"
+        env_file:
+            - .env
+        ports:
+            - ${transport}:${transport}
+        networks:
+          - overlay-network
+        deploy:
+            replicas: ${num_trans}
+    quote:
+        image: teamrandint/quoteserver
+        depends_on:
+            - "audit"
+        env_file:
+            - .env
+        ports:
+            - ${quoteport}:${quoteport}
+        networks:
+          - overlay-network
+    trigger:
+        image: teamrandint/triggerserver
+        depends_on:
+            - "audit"
+        env_file:
+            - .env
+        ports:
+            - ${triggerport}:${triggerport}
+        networks:
+          - overlay-network
+    proxy_web:
+        image: dockercloud/haproxy
+        depends_on:
+          - web
+        environment:
+          - BALANCE=leastconn
+          - OPTION=http-keep-alive
+          - MAXCONN=9999
+          - EXTRA_ROUTE_SETTINGS=maxconn 999
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+        ports:
+          - ${proxyport}:${proxyport}
+          - "1936:1936"
+        networks:
+          - overlay-network
+        deploy:
+          placement:
+            constraints: [node.role == manager]
+

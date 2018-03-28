@@ -1,10 +1,13 @@
-Put these files in the /go/src/seng468 directory.
-Navigate to the folder.
+The script run_parallel takes arguments:
+    -m start the mock legacy quote server
+    -b rebuild the images
 
-```
-docker-compose build
-docker-compose up
-```
+It will set up a swarm, networks, remove all running services, and create a set of new ones
 
-You will now be able to see all of the components running from one shell. This will be slow to build the first time, but for subsequent small modifications it will take a few seconds.
+Use docker service ls to see when they're online
+
+Arguments such as how many web, and trans servers to run are in .env
+
+Entry point is the proxy server at localhost:$proxyport
+
 

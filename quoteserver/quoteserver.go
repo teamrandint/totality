@@ -13,6 +13,8 @@ import (
 
 	"github.com/patrickmn/go-cache"
 	"github.com/shopspring/decimal"
+	"strings"
+	"errors"
 )
 
 type QuoteReply struct {
@@ -25,10 +27,12 @@ type QuoteReply struct {
 
 func getReply(msg string) *QuoteReply {
 	n1 := re.SubexpNames()
-	r2 := re.FindAllStringSubmatch(msg, -1)[0]
-
+	r2 := re.FindAllStringSubmatch(msg, -1)
+	if r2 == nil {
+		return nil
+	}
 	res := map[string]string{}
-	for i, n := range r2 {
+	for i, n := range r2[0] {
 		res[n1[i]] = n
 	}
 
@@ -58,20 +62,24 @@ func quote(user string, stock string, transNum int) (decimal.Decimal, error) {
 			time.Second*5,
 		)
 		if err != nil { // trans server down? retry
-			fmt.Println("Legacy server timedout -- retrying")
+			fmt.Println(err.Error())
 		} else {
 			break
 		}
 	}
 
 	request := fmt.Sprintf("%s,%s\n", stock, user)
+	fmt.Println(request)
 	fmt.Fprintf(conn, request)
 	message, err := bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
 		return decimal.Decimal{}, err
 	}
-	conn.Close()
+	defer conn.Close()
 	reply := getReply(message)
+	if reply == nil {
+		return decimal.Decimal{}, errors.New("reply from quoteserve doesn't match regex")
+	}
 	go auditServer.QuoteServer("quoteserver", transNum, reply.quote.String(), reply.stock,
 		reply.user, reply.time, reply.key)
 	quoteCache.Set(reply.stock, reply.quote.String(), cache.DefaultExpiration)
@@ -80,9 +88,11 @@ func quote(user string, stock string, transNum int) (decimal.Decimal, error) {
 
 func quoteHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
-	user := query.Get("user")
-	stock := query.Get("stock")
+	user := strings.TrimSpace(query.Get("user"))
+	stock := strings.TrimSpace(query.Get("stock"))
 	transNum, _ := strconv.Atoi(query.Get("transNum"))
+	fmt.Println(user)
+	fmt.Println(stock)
 	reply, err := quote(user, stock, transNum)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -101,7 +111,7 @@ func main() {
 	addr := os.Getenv("quoteaddr")
 	port := os.Getenv("quoteport")
 	fmt.Printf("Quote server listening on %s:%s\n", addr, port)
-	if err := http.ListenAndServe(addr+":"+port, nil); err != nil {
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		panic(err)
 	}
 }
